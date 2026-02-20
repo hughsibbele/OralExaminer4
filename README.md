@@ -22,12 +22,10 @@ You'll need two free API keys (takes ~5 minutes to get both):
 
 ### Step 1: Copy the Spreadsheet
 
-1. Download the file **`Oral_Examiner_4.0_Template.xlsx`** from this repository
-2. Go to [Google Sheets](https://sheets.google.com) and create a new blank spreadsheet
-3. Go to **File > Import** and upload the `.xlsx` file
-4. Choose **"Replace spreadsheet"** when prompted
+1. Click this link: **[Make a copy of Oral Examiner 4.0](https://docs.google.com/spreadsheets/d/1G6Brx32ctj1-VUTcCnVwTcbSkY_9jlZJiLakuN71OMQ/copy)**
+2. Click **Make a copy** when prompted
 
-You now have a spreadsheet with 5 tabs: Database, Config, Prompts, Questions, and Logs.
+You now have your own spreadsheet with 5 tabs: Database, Config, Prompts, Questions, and Logs.
 
 ### Step 2: Add the Code
 
