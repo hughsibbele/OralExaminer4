@@ -35,9 +35,7 @@ You now have your own spreadsheet with 5 tabs: Database, Config, Prompts, Questi
 4. Open the file **`code.gs`** from this repository, copy its entire contents, and paste it into the script editor
 5. Click the **+** next to "Files" in the left sidebar, choose **HTML**, and name it **`index`** (not `index.html` — Apps Script adds the extension automatically)
 6. Open the file **`index.html`** from this repository, copy its entire contents, and paste it into the `index.html` file you just created
-7. Click the **+** next to "Files" in the left sidebar, choose **Script**, and name it **`appsscript`**
-   - Actually, skip this — the `appsscript.json` is handled automatically. Instead:
-   - In the script editor, click the gear icon (**Project Settings**) on the left sidebar
+7. In the script editor, click the gear icon (**Project Settings**) on the left sidebar
    - Check **"Show 'appsscript.json' manifest file in editor"**
    - Go back to the Editor, open `appsscript.json`, and replace its contents with the `appsscript.json` from this repository
 8. Click **Save** (or Ctrl+S)
