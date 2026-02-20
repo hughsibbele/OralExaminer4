@@ -43,7 +43,7 @@ You now have your own spreadsheet with 5 tabs: Database, Config, Prompts, Questi
 ### Step 3: Run the Setup Wizard
 
 1. Go back to your **spreadsheet** tab (not the script editor)
-2. Refresh the page — wait a few seconds for the menu to appear
+2. Refresh the page — wait a few seconds for the menu to appear.  You may need to close the spreadsheet and open it again.
 3. Click **Oral Defense > Setup Wizard (start here)**
 4. Google will ask you to authorize the script — click through the permissions prompts
    - You may see a "This app isn't verified" warning. Click **Advanced > Go to [project name]** to continue. This is your own script running on your own account — it's safe.
@@ -66,7 +66,7 @@ You now have your own spreadsheet with 5 tabs: Database, Config, Prompts, Questi
 5. Click **Deploy**
 6. Copy the **Web app URL** that appears
 
-**That URL is your exam portal.** Share it with students.
+**That URL is your exam portal.** Share it with students, put it on your Canvas assignments, whatever.
 
 ---
 
