@@ -2,7 +2,7 @@
 
 **A voice-based oral defense system for student essays.** Students submit an essay, have a live voice conversation with an AI examiner, and receive a grade multiplier based on how well they defended their work.
 
-Built on Google Sheets + Google Apps Script. Free to run (you provide your own API keys).
+Built on Google Sheets + Google Apps Script. The student-facing frontend is hosted on **GitHub Pages** (not served from Apps Script) to enable reliable microphone access for the voice examiner. Free to run (you provide your own API keys).
 
 ---
 
@@ -54,7 +54,7 @@ You now have your own spreadsheet with 5 tabs: Database, Config, Prompts, Questi
    - **App Title** (optional) — whatever you want students to see in the header
 6. Click **Save & Complete Setup**
 
-### Step 4: Deploy as a Web App
+### Step 4: Deploy the Apps Script Backend
 
 1. Go back to the **Apps Script editor** tab
 2. Click **Deploy > New deployment** (blue button, top right)
@@ -64,9 +64,25 @@ You now have your own spreadsheet with 5 tabs: Database, Config, Prompts, Questi
    - **Execute as:** Me
    - **Who has access:** Anyone
 5. Click **Deploy**
-6. Copy the **Web app URL** that appears
+6. Copy the **Web app URL** that appears — you'll need this in the next step
 
-**That URL is your exam portal.** Share it with students, put it on your Canvas assignments, whatever.
+This URL is the **backend API only**. Students will not access this URL directly.
+
+### Step 5: Set Up the Frontend (GitHub Pages)
+
+The student-facing portal (`index.html`) is hosted on GitHub Pages, not served from Apps Script. This is required because Apps Script serves pages inside an iframe, which blocks microphone access needed for the voice examiner.
+
+1. Open `index.html` in this repository
+2. Find the line near the top of the `<script>` block:
+   ```javascript
+   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/DEPLOYMENT_ID/exec";
+   ```
+3. Replace `DEPLOYMENT_ID` with your actual Apps Script deployment URL from Step 4
+4. Commit and push the change
+5. Enable GitHub Pages in your repository settings (Settings > Pages > Source: main branch)
+6. Your portal URL will be something like: `https://yourusername.github.io/your-repo-name/`
+
+**That GitHub Pages URL is your exam portal.** Share it with students, put it on your Canvas assignments, whatever.
 
 ---
 
@@ -107,7 +123,7 @@ Non-secret settings you can tweak:
 
 ## How Students Use It
 
-1. Student opens your web app URL
+1. Student opens your GitHub Pages URL
 2. Clicks **Enter the Portal**
 3. Types their name and pastes their essay, clicks **Submit**
 4. Clicks **Begin Oral Defense** — the voice examiner starts talking
@@ -152,9 +168,10 @@ Non-secret settings you can tweak:
 
 ## How It Works (Technical Summary)
 
+- The student portal (`index.html`) is hosted on **GitHub Pages** as a top-level page (not in an iframe), which enables reliable microphone access for the ElevenLabs voice SDK
+- The frontend communicates with the **Apps Script backend** via `fetch()` requests using `?action=` routing
 - The spreadsheet is the database — everything lives in Google Sheets
-- The Apps Script code runs as a web app on your Google account
-- When a student finishes their defense, the app calls the ElevenLabs API to retrieve the conversation transcript
+- When a student finishes their defense, the frontend calls the backend, which queries the ElevenLabs API to retrieve the conversation transcript
 - A background trigger checks every 5 minutes for any missed transcripts
 - Grading sends the essay + transcript to Google's Gemini AI with your rubric
 - No webhook setup required — everything is fetched via API
@@ -163,11 +180,13 @@ Non-secret settings you can tweak:
 
 ## Updating the Code
 
-If you need to update the code after making changes:
+**Frontend changes** (index.html): Push to GitHub and GitHub Pages will update automatically. Students use the same URL.
+
+**Backend changes** (code.gs):
 1. Go to **Extensions > Apps Script**
 2. Click **Deploy > Manage deployments**
 3. Click the pencil icon on your deployment
 4. Change the version to **New version**
 5. Click **Deploy**
 
-Students use the same URL — no need to share a new link.
+The Apps Script URL stays the same, so the frontend continues to work without changes.

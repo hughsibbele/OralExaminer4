@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <base target="_top">
+    <title>Oral Defense Portal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
     <style>
@@ -110,6 +110,10 @@
 
       .screen.active {
         display: block;
+      }
+
+      .bot-avatar:not([src]) {
+        visibility: hidden;
       }
 
       /* ==================== */
@@ -711,7 +715,7 @@
     <div class="container">
       <div class="header">
         <h1>Oral Defense Portal</h1>
-        <p>Oral Examination Portal</p>
+        <p></p>
       </div>
 
       <div class="content">
@@ -719,7 +723,6 @@
         <div id="screen-welcome" class="screen active">
           <div class="welcome-content">
             <img
-              src="https://lh3.googleusercontent.com/d/15AUwvvO1w29vg__uZLp5Q-lkqcm7jn6w"
               alt="ExaminerBot"
               class="avatar-large bot-avatar"
             >
@@ -748,7 +751,6 @@
         <div id="screen-submit" class="screen">
           <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
             <img
-              src="https://lh3.googleusercontent.com/d/15AUwvvO1w29vg__uZLp5Q-lkqcm7jn6w"
               alt="ExaminerBot"
               class="bot-avatar"
               style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--gold);"
@@ -803,7 +805,6 @@
         <div id="screen-ready" class="screen">
           <div class="ready-content">
             <img
-              src="https://lh3.googleusercontent.com/d/15AUwvvO1w29vg__uZLp5Q-lkqcm7jn6w"
               alt="ExaminerBot"
               class="avatar-medium bot-avatar"
             >
@@ -870,7 +871,6 @@
             <div class="defense-frame">
               <div class="agent-avatar-wrapper">
                 <img
-                  src="https://lh3.googleusercontent.com/d/15AUwvvO1w29vg__uZLp5Q-lkqcm7jn6w"
                   alt="ExaminerBot"
                   class="agent-avatar bot-avatar"
                   id="agentAvatar"
@@ -976,16 +976,45 @@
     <script src="https://unpkg.com/@elevenlabs/convai-widget-embed@beta" async type="text/javascript"></script>
 
     <script>
+      // Apps Script backend URL — update this after deploying your Apps Script web app
+      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/DEPLOYMENT_ID/exec";
+
+      /**
+       * Calls the Apps Script backend via fetch.
+       * GET requests: action is passed as a query parameter, no body.
+       * POST requests: action is passed as a query parameter, data is sent as JSON body
+       * with Content-Type: text/plain to avoid CORS preflight (Apps Script doesn't handle OPTIONS).
+       * @param {string} action - The action parameter (e.g., "getConfig", "submitEssay")
+       * @param {Object} [data] - Optional data to POST as JSON body
+       * @returns {Promise<Object>} Parsed JSON response from the backend
+       */
+      async function callBackend(action, data) {
+        const url = new URL(APPS_SCRIPT_URL);
+        url.searchParams.set("action", action);
+
+        const options = { redirect: "follow" };
+        if (data !== undefined) {
+          options.method = "POST";
+          options.headers = { "Content-Type": "text/plain" };
+          options.body = JSON.stringify(data);
+        }
+
+        const response = await fetch(url.toString(), options);
+        if (!response.ok) throw new Error("Backend error: " + response.status);
+        return response.json();
+      }
+
       // Configuration (loaded from backend)
       let CONFIG = {
         agentId: "",
         maxChars: 15000,
         appTitle: "Oral Defense Portal",
-        appSubtitle: "Oral Examination of Literary Works"
+        appSubtitle: ""
       };
 
       // State
       let currentSessionId = null;
+      let currentConversationId = null;
       let studentName = null;
       let essayText = null;
       let defensePrompt = null;
@@ -1014,7 +1043,7 @@
       }
 
       // Form submission
-      function handleSubmit(event) {
+      async function handleSubmit(event) {
         event.preventDefault();
 
         essayText = document.getElementById('essay').value;
@@ -1036,10 +1065,12 @@
         submitSpinner.style.display = 'block';
 
         // Submit to backend
-        google.script.run
-          .withSuccessHandler(onSubmitSuccess)
-          .withFailureHandler(onSubmitError)
-          .processSubmission({ name: studentName, essay: essayText });
+        try {
+          const response = await callBackend("submitEssay", { name: studentName, essay: essayText });
+          onSubmitSuccess(response);
+        } catch (error) {
+          onSubmitError(error);
+        }
       }
 
       function onSubmitSuccess(response) {
@@ -1177,53 +1208,55 @@
       /**
        * Attempts to fetch transcript, retrying up to 3 times
        */
-      function attemptTranscriptFetch(attempt) {
+      async function attemptTranscriptFetch(attempt) {
         const maxAttempts = 3;
         if (attempt > 0) {
           document.getElementById('fetchStatusText').textContent =
             'Waiting for transcript... (attempt ' + (attempt + 1) + '/' + (maxAttempts + 1) + ')';
         }
 
-        google.script.run
-          .withSuccessHandler(function(result) {
-            if (result.success) {
-              // Transcript saved successfully
-              transcriptFetchInProgress = false;
-              document.getElementById('transcriptFetchStatus').style.display = 'none';
-              document.getElementById('postCallControls').style.display = 'block';
-              document.getElementById('defenseTitle').textContent = 'Defense Complete';
-              document.getElementById('defenseSubtitle').textContent = 'Your responses have been recorded';
-            } else if (result.retryable && attempt < maxAttempts) {
-              // Retry after 8 seconds
-              setTimeout(function() {
-                attemptTranscriptFetch(attempt + 1);
-              }, 8000);
-            } else {
-              // Final failure — show message with continue option
-              transcriptFetchInProgress = false;
-              document.getElementById('transcriptFetchStatus').style.display = 'none';
-              document.getElementById('postCallControls').style.display = 'block';
-              document.getElementById('defenseTitle').textContent = 'Defense Complete';
-              document.getElementById('defenseSubtitle').textContent =
-                'Your transcript will be recovered automatically. You may close this page.';
-            }
-          })
-          .withFailureHandler(function(error) {
-            console.error('Transcript fetch error:', error);
-            if (attempt < maxAttempts) {
-              setTimeout(function() {
-                attemptTranscriptFetch(attempt + 1);
-              }, 8000);
-            } else {
-              transcriptFetchInProgress = false;
-              document.getElementById('transcriptFetchStatus').style.display = 'none';
-              document.getElementById('postCallControls').style.display = 'block';
-              document.getElementById('defenseTitle').textContent = 'Defense Complete';
-              document.getElementById('defenseSubtitle').textContent =
-                'Your transcript will be recovered automatically. You may close this page.';
-            }
-          })
-          .fetchAndStoreTranscript(currentSessionId);
+        try {
+          const result = await callBackend("fetchTranscript", {
+            sessionId: currentSessionId,
+            conversationId: currentConversationId
+          });
+
+          if (result.success) {
+            // Transcript saved successfully
+            transcriptFetchInProgress = false;
+            document.getElementById('transcriptFetchStatus').style.display = 'none';
+            document.getElementById('postCallControls').style.display = 'block';
+            document.getElementById('defenseTitle').textContent = 'Defense Complete';
+            document.getElementById('defenseSubtitle').textContent = 'Your responses have been recorded';
+          } else if (result.retryable && attempt < maxAttempts) {
+            // Retry after 8 seconds
+            setTimeout(function() {
+              attemptTranscriptFetch(attempt + 1);
+            }, 8000);
+          } else {
+            // Final failure — show message with continue option
+            transcriptFetchInProgress = false;
+            document.getElementById('transcriptFetchStatus').style.display = 'none';
+            document.getElementById('postCallControls').style.display = 'block';
+            document.getElementById('defenseTitle').textContent = 'Defense Complete';
+            document.getElementById('defenseSubtitle').textContent =
+              'Your transcript will be recovered automatically. You may close this page.';
+          }
+        } catch (error) {
+          console.error('Transcript fetch error:', error);
+          if (attempt < maxAttempts) {
+            setTimeout(function() {
+              attemptTranscriptFetch(attempt + 1);
+            }, 8000);
+          } else {
+            transcriptFetchInProgress = false;
+            document.getElementById('transcriptFetchStatus').style.display = 'none';
+            document.getElementById('postCallControls').style.display = 'block';
+            document.getElementById('defenseTitle').textContent = 'Defense Complete';
+            document.getElementById('defenseSubtitle').textContent =
+              'Your transcript will be recovered automatically. You may close this page.';
+          }
+        }
       }
 
       // Handle call/conversation events from the widget
@@ -1231,6 +1264,12 @@
         console.log('Widget event:', event.type, event.detail);
 
         const detail = event.detail || {};
+
+        // Capture conversationId from widget events
+        if (detail.conversationId && !currentConversationId) {
+          currentConversationId = detail.conversationId;
+          console.log('Captured conversationId:', currentConversationId);
+        }
 
         // Detect call started
         if (detail.status === 'connected' ||
@@ -1309,6 +1348,7 @@
       // Reset portal for new submission
       function resetPortal() {
         currentSessionId = null;
+        currentConversationId = null;
         studentName = null;
         essayText = null;
         defensePrompt = null;
@@ -1347,42 +1387,40 @@
       }
 
       // Load configuration from backend
-      function loadConfig() {
-        google.script.run
-          .withSuccessHandler(function(config) {
-            CONFIG = config;
-            configLoaded = true;
+      async function loadConfig() {
+        try {
+          const config = await callBackend("getConfig");
+          CONFIG = config;
+          configLoaded = true;
 
-            // Update UI with config values
-            document.getElementById('maxChars').textContent = CONFIG.maxChars.toLocaleString();
+          // Update UI with config values
+          document.getElementById('maxChars').textContent = CONFIG.maxChars.toLocaleString();
 
-            // Update title if provided
-            if (CONFIG.appTitle) {
-              document.querySelector('.header h1').textContent = CONFIG.appTitle;
-            }
-            // Hide subtitle if empty, otherwise update it
-            const subtitleEl = document.querySelector('.header p');
-            if (CONFIG.appSubtitle) {
-              subtitleEl.textContent = CONFIG.appSubtitle;
-            } else {
-              subtitleEl.style.display = 'none';
-            }
+          // Update title if provided
+          if (CONFIG.appTitle) {
+            document.querySelector('.header h1').textContent = CONFIG.appTitle;
+          }
+          // Hide subtitle if empty, otherwise update it
+          const subtitleEl = document.querySelector('.header p');
+          if (CONFIG.appSubtitle) {
+            subtitleEl.textContent = CONFIG.appSubtitle;
+          } else {
+            subtitleEl.style.display = 'none';
+          }
 
-            // Update avatar images if custom URL provided
-            if (CONFIG.avatarUrl) {
-              document.querySelectorAll('.bot-avatar').forEach(function(img) {
-                img.src = CONFIG.avatarUrl;
-              });
-            }
+          // Update avatar images if custom URL provided
+          if (CONFIG.avatarUrl) {
+            document.querySelectorAll('.bot-avatar').forEach(function(img) {
+              img.src = CONFIG.avatarUrl;
+            });
+          }
 
-            console.log('Config loaded:', CONFIG);
-          })
-          .withFailureHandler(function(error) {
-            console.error('Failed to load config:', error);
-            // Use defaults already set
-            document.getElementById('maxChars').textContent = CONFIG.maxChars.toLocaleString();
-          })
-          .getFrontendConfig();
+          console.log('Config loaded:', CONFIG);
+        } catch (error) {
+          console.error('Failed to load config:', error);
+          // Use defaults already set
+          document.getElementById('maxChars').textContent = CONFIG.maxChars.toLocaleString();
+        }
       }
 
       // Initialize
